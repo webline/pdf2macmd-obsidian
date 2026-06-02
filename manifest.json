@@ -1,0 +1,10 @@
+{
+  "id": "pdf2macmd",
+  "name": "PDF2MACMD",
+  "version": "0.1.0",
+  "minAppVersion": "1.5.0",
+  "description": "Wandelt im Quell-Ordner abgelegte PDFs on-device über das pdf2macmd-Binary (Apple Vision) in saubere Markdown-Notizen um und legt die Original-PDF in einen Archiv-Ordner.",
+  "author": "Detlef Beyer / Medienkonzepte GbR",
+  "authorUrl": "https://www.ready-made.de/",
+  "isDesktopOnly": true
+}
