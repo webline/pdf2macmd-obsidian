@@ -1,6 +1,8 @@
 # PDF2MACMD — Obsidian-Plugin
 
-Frontend für das native `pdf2macmd`-Binary. Überwacht einen Quell-Ordner im Vault, schickt neue PDFs an das Binary (Apple Vision, on-device) und legt das erzeugte Markdown im Ziel-Ordner ab. Die Original-PDF wandert ins Archiv; die Notiz verlinkt per `quelle`-Property darauf.
+**Wandelt PDFs direkt in deinem Vault in saubere Markdown-Notizen um** — on-device über **Apple Vision**, in bemerkenswert hoher Qualität. Erkannt werden Überschriften, Absätze, Listen, **echte Tabellen**, Fett/Kursiv und Fußnoten — mit deutschem Sprachmodell, De-Hyphenation und automatischer Wahl zwischen Textebene und OCR. Keine Cloud, keine externen Dienste, alles bleibt auf dem Mac.
+
+Der Ablauf aus deiner Sicht: PDF in den Quell-Ordner legen → das Plugin erzeugt die Notiz im Ziel-Ordner, archiviert die Original-PDF und verlinkt sie per `quelle`-Property. Die eigentliche Umwandlung erledigt das native `pdf2macmd`-Binary; das Plugin steuert Überwachung, Aufruf und Ablage.
 
 > [!important]
 > **macOS-only.** Das Plugin ruft ein natives macOS-Binary auf (Apple Vision Document API, macOS 26+). `isDesktopOnly: true` — auf Mobile nicht verfügbar.
@@ -32,16 +34,7 @@ Der Swift-Quellcode des Binaries bleibt **privat**; Plugin und (kompilierte) `.p
 | `webline/pdf2macmd` | **privat** | Swift-Quelle + `release.sh` → baut die notarisierte `.pkg` |
 | `webline/pdf2macmd-obsidian` | **öffentlich** | dieser Plugin-Quellcode; BRAT-Ziel |
 
-Pro Version trägt ein **GitHub-Release** im öffentlichen Repo vier Assets:
-`manifest.json`, `main.js`, `styles.css` (Plugin, für BRAT) und `pdf2macmd-<ver>.pkg` (Binär — kein Quellcode). Eine hochgeladene `.pkg` legt nichts vom Swift-Code offen.
-
-### Release bauen
-
-1. **Plugin-Assets:** Tag pushen → der Workflow `.github/workflows/release.yml` baut und legt einen **Draft-Release** mit `manifest.json`/`main.js`/`styles.css` an.
-2. **Binary:** lokal `./release.sh <version>` im privaten Repo → `dist/pdf2macmd-<version>.pkg`. Diese an denselben Draft-Release hängen.
-3. Release veröffentlichen.
-
-> Versionsnummer in `manifest.json` **und** `.pkg` synchron hochziehen — sonst erkennt BRAT kein Update.
+Jeder **GitHub-Release** im öffentlichen Repo trägt vier Assets: `manifest.json`, `main.js`, `styles.css` (Plugin, für BRAT) und `pdf2macmd-<ver>.pkg` (Binär — kein Quellcode). Eine hochgeladene `.pkg` legt nichts vom Swift-Code offen.
 
 ## Installation für Nutzer
 
@@ -74,6 +67,3 @@ npm run build   # Typecheck + Produktions-Build
 | Automatische Überwachung | an |
 | Immer OCR (`--ocr-all`) | aus |
 | OCR-Auflösung (DPI) | leer = 300 |
-
-> [!note]
-> Wenn dieses Plugin den Ordner überwacht, darf der alte **LaunchAgent** nicht denselben Ordner greifen — sonst Doppelverarbeitung. `plugin-install.sh` entlädt ihn.
