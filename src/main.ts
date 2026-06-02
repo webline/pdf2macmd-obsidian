@@ -30,8 +30,13 @@ import { join as pathJoin } from "path";
 
 const execFileAsync = promisify(execFile);
 
-/** Bezugsquelle für die .pkg, wenn das Binary fehlt. Bei Veröffentlichung anpassen. */
-const PKG_DOWNLOAD_URL = "https://github.com/webline/pdf2macmd/releases";
+/**
+ * Bezugsquelle für die .pkg, wenn das Binary fehlt.
+ * Zeigt auf das ÖFFENTLICHE Plugin-Repo, an dessen Releases die (kompilierte,
+ * quellfreie) .pkg gehängt wird — der private Swift-Quellcode bleibt unberührt.
+ * Falls das Repo anders heißt, hier anpassen.
+ */
+const PKG_DOWNLOAD_URL = "https://github.com/webline/pdf2macmd-obsidian/releases";
 
 /** Kandidaten-Pfade, wenn der Nutzer keinen expliziten Binary-Pfad gesetzt hat. */
 const BINARY_CANDIDATES = [

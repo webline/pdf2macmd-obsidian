@@ -23,17 +23,37 @@ Fehlt das Binary, zeigt das Plugin in den Einstellungen einen Download-Button un
 
 Namens­kollisionen werden mit `-1`, `-2` … umgangen, nie überschrieben.
 
-## Installation (ohne Community-Katalog)
+## Verteilung: zwei Repos
 
-Aus dem Repo-Wurzelverzeichnis:
+Der Swift-Quellcode des Binaries bleibt **privat**; Plugin und (kompilierte) `.pkg` werden **öffentlich** verteilt. Das erzwingt zwei getrennte Repos:
 
+| Repo | Sichtbarkeit | Inhalt |
+|---|---|---|
+| `webline/pdf2macmd` | **privat** | Swift-Quelle + `release.sh` → baut die notarisierte `.pkg` |
+| `webline/pdf2macmd-obsidian` | **öffentlich** | dieser Plugin-Quellcode; BRAT-Ziel |
+
+Pro Version trägt ein **GitHub-Release** im öffentlichen Repo vier Assets:
+`manifest.json`, `main.js`, `styles.css` (Plugin, für BRAT) und `pdf2macmd-<ver>.pkg` (Binär — kein Quellcode). Eine hochgeladene `.pkg` legt nichts vom Swift-Code offen.
+
+### Release bauen
+
+1. **Plugin-Assets:** Tag pushen → der Workflow `.github/workflows/release.yml` baut und legt einen **Draft-Release** mit `manifest.json`/`main.js`/`styles.css` an.
+2. **Binary:** lokal `./release.sh <version>` im privaten Repo → `dist/pdf2macmd-<version>.pkg`. Diese an denselben Draft-Release hängen.
+3. Release veröffentlichen.
+
+> Versionsnummer in `manifest.json` **und** `.pkg` synchron hochziehen — sonst erkennt BRAT kein Update.
+
+## Installation für Nutzer
+
+**Plugin (empfohlen, mit Auto-Update):** In [BRAT](https://github.com/TfTHacker/obsidian42-brat) *Add beta plugin* → `webline/pdf2macmd-obsidian`.
+
+**Binary:** Die `.pkg` aus dem neuesten Release herunterladen und doppelklicken (notarisiert, installiert nach `/usr/local/bin`). **Voraussetzung: macOS 26+** (Apple Vision Document API).
+
+**Manuell ohne GitHub** (für eigene Macs): aus dem privaten Repo-Root
 ```bash
 ./plugin-install.sh "/Users/<du>/Documents/Obsidian/<Vault>"
 ```
-
-Das Skript baut das Plugin und kopiert `manifest.json`, `main.js`, `styles.css` nach `<Vault>/.obsidian/plugins/pdf2macmd/`. Danach in Obsidian unter *Einstellungen → Community-Plugins* den eingeschränkten Modus aus und **PDF2MACMD** aktivieren.
-
-Alternativ über [BRAT](https://github.com/TfTHacker/obsidian42-brat) direkt aus dem GitHub-Repo (inkl. Auto-Updates).
+kopiert die gebauten Plugin-Dateien direkt ins Vault.
 
 ## Entwicklung
 

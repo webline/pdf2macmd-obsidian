@@ -1,0 +1,40 @@
+# Baut das Plugin bei jedem Tag und legt einen DRAFT-Release mit den
+# Plugin-Assets an (manifest.json, main.js, styles.css). Die notarisierte
+# .pkg wird NICHT in CI gebaut (braucht Apple-Zertifikate) — sie wird lokal
+# per ../release.sh erzeugt und manuell an denselben Draft-Release gehängt,
+# bevor man ihn veröffentlicht.
+name: Release Obsidian-Plugin
+
+on:
+  push:
+    tags:
+      - "*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20.x"
+
+      - name: Install & Build
+        run: |
+          npm install
+          npm run build
+
+      - name: Draft-Release mit Plugin-Assets
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag="${GITHUB_REF#refs/tags/}"
+          gh release create "$tag" \
+            --title="$tag" \
+            --draft \
+            --notes "Plugin-Assets automatisch gebaut. .pkg manuell anhängen, dann veröffentlichen." \
+            manifest.json main.js styles.css
