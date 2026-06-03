@@ -1,6 +1,6 @@
 {
   "name": "pdf2macmd-obsidian",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Obsidian-Plugin-Frontend für das pdf2macmd-Binary (PDF → Markdown via Apple Vision, on-device).",
   "main": "main.js",
   "scripts": {

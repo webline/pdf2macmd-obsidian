@@ -19,26 +19,31 @@ import {
   Setting,
   TFile,
   normalizePath,
+  requestUrl,
 } from "obsidian";
 
 import { LOGO_DATA_URI } from "./logo";
 
 import { execFile } from "child_process";
 import { promisify } from "util";
-import { rename, readFile, unlink, stat } from "fs/promises";
+import { rename, readFile, unlink, stat, mkdir, writeFile, chmod } from "fs/promises";
 import { tmpdir } from "os";
 import { homedir } from "os";
-import { join as pathJoin } from "path";
+import { join as pathJoin, dirname } from "path";
 
 const execFileAsync = promisify(execFile);
 
 /**
- * Bezugsquelle für die .pkg, wenn das Binary fehlt.
- * Zeigt auf das ÖFFENTLICHE Plugin-Repo, an dessen Releases die (kompilierte,
- * quellfreie) .pkg gehängt wird — der private Swift-Quellcode bleibt unberührt.
- * Falls das Repo anders heißt, hier anpassen.
+ * Direkter Download des signierten Standalone-Binaries vom jeweils neuesten
+ * Release (stabiler Asset-Name `pdf2macmd`). Das Plugin lädt es in seinen
+ * eigenen Ordner — kein Installer, kein Admin, kein GitHub-Browsing.
  */
-const PKG_DOWNLOAD_URL = "https://github.com/webline/pdf2macmd-obsidian/releases";
+const BINARY_DOWNLOAD_URL =
+  "https://github.com/webline/pdf2macmd-obsidian/releases/latest/download/pdf2macmd";
+
+/** Fallback: Release-Seite mit der .pkg, falls der Auto-Download scheitert. */
+const PKG_DOWNLOAD_URL =
+  "https://github.com/webline/pdf2macmd-obsidian/releases/latest";
 
 /** Kandidaten-Pfade, wenn der Nutzer keinen expliziten Binary-Pfad gesetzt hat. */
 const BINARY_CANDIDATES = [
@@ -116,12 +121,17 @@ export default class Pdf2macmdPlugin extends Plugin {
 
   // ── Binary-Auflösung ─────────────────────────────────────────────
 
+  /** Vom Plugin selbst verwalteter Binary-Pfad (Auto-Download landet hier). */
+  managedBinaryPath(): string {
+    return pathJoin(this.vaultBase(), this.manifest.dir ?? "", "bin", "pdf2macmd");
+  }
+
   /** Liefert den zu nutzenden Binary-Pfad oder null, wenn keiner existiert. */
   async resolveBinary(): Promise<string | null> {
     const explicit = this.settings.binaryPath.trim();
     const candidates = explicit
       ? [explicit.replace(/^~(?=$|\/)/, homedir())]
-      : BINARY_CANDIDATES;
+      : [this.managedBinaryPath(), ...BINARY_CANDIDATES];
     for (const candidate of candidates) {
       try {
         await stat(candidate);
@@ -133,11 +143,44 @@ export default class Pdf2macmdPlugin extends Plugin {
     return null;
   }
 
+  /**
+   * Lädt das signierte Binary vom neuesten Release in den Plugin-Ordner,
+   * macht es ausführbar und gibt true zurück. Kein Installer, kein Admin —
+   * weil das Plugin die Datei schreibt, wird sie nicht in Quarantäne gestellt.
+   */
+  async downloadBinary(): Promise<boolean> {
+    const dest = this.managedBinaryPath();
+    const notice = new Notice("PDF2MACMD: Binary wird geladen …", 0);
+    try {
+      const res = await requestUrl({ url: BINARY_DOWNLOAD_URL, method: "GET", throw: false });
+      if (res.status !== 200) throw new Error(`HTTP ${res.status}`);
+      const bytes = res.arrayBuffer;
+      if (!bytes || bytes.byteLength < 1024) throw new Error("Leere oder zu kleine Datei");
+
+      await mkdir(dirname(dest), { recursive: true });
+      await writeFile(dest, Buffer.from(bytes));
+      await chmod(dest, 0o755);
+
+      notice.hide();
+      new Notice(`PDF2MACMD: Binary installiert (${Math.round(bytes.byteLength / 1024)} KB).`);
+      return true;
+    } catch (err) {
+      notice.hide();
+      console.error("PDF2MACMD: Binary-Download fehlgeschlagen", err);
+      new Notice(
+        `PDF2MACMD: Download fehlgeschlagen — ${err instanceof Error ? err.message : String(err)}. ` +
+          "Du kannst die .pkg auch manuell installieren.",
+        10000,
+      );
+      return false;
+    }
+  }
+
   private async checkBinary() {
     if (!(await this.resolveBinary())) {
       new Notice(
-        "PDF2MACMD: Binary nicht gefunden. Bitte den Installer (.pkg) ausführen " +
-          "oder den Pfad in den Plugin-Einstellungen setzen.",
+        "PDF2MACMD: Binary nicht gefunden. In den Plugin-Einstellungen lässt es sich " +
+          "mit einem Klick automatisch installieren.",
         10000,
       );
     }
@@ -434,20 +477,40 @@ class Pdf2macmdSettingTab extends PluginSettingTab {
   }
 
   private async renderBinaryStatus(containerEl: HTMLElement) {
+    containerEl.empty();
     const binary = await this.plugin.resolveBinary();
     const setting = new Setting(containerEl).setName("pdf2macmd-Binary");
+
     if (binary) {
       setting.setDesc(`Gefunden: ${binary}`);
-    } else {
-      setting.setDesc(
-        "Nicht gefunden. Das Binary kommt über die separate .pkg (notarisiert). " +
-          "Nach der Installation hier erneut prüfen.",
-      );
       setting.addButton((b) =>
         b
-          .setButtonText("Installer (.pkg) herunterladen")
-          .onClick(() => window.open(PKG_DOWNLOAD_URL, "_blank")),
+          .setButtonText("Aktualisieren")
+          .setTooltip("Neueste Binary-Version laden")
+          .onClick(async () => {
+            if (await this.plugin.downloadBinary()) this.display();
+          }),
       );
+      return;
     }
+
+    setting.setDesc(
+      "Nicht gefunden. Mit einem Klick lädt das Plugin das benötigte Programm " +
+        "direkt herunter — kein Installer, kein Passwort. (Voraussetzung: macOS 26+)",
+    );
+    setting.addButton((b) =>
+      b
+        .setButtonText("Binary installieren")
+        .setCta()
+        .onClick(async () => {
+          if (await this.plugin.downloadBinary()) this.display();
+        }),
+    );
+    setting.addExtraButton((b) =>
+      b
+        .setIcon("download")
+        .setTooltip("Stattdessen die .pkg manuell laden")
+        .onClick(() => window.open(PKG_DOWNLOAD_URL, "_blank")),
+    );
   }
 }
