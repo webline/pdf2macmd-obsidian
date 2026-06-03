@@ -162,7 +162,9 @@ export default class Pdf2macmdPlugin extends Plugin {
       await chmod(dest, 0o755);
 
       notice.hide();
-      new Notice(`PDF2MACMD: Binary installiert (${Math.round(bytes.byteLength / 1024)} KB).`);
+      new Notice(
+        `PDF2MACMD: Binary installiert (${Math.round(bytes.byteLength / 1024)} KB) – bereit. ✓`,
+      );
       return true;
     } catch (err) {
       notice.hide();
@@ -506,11 +508,35 @@ class Pdf2macmdSettingTab extends PluginSettingTab {
           if (await this.plugin.downloadBinary()) this.display();
         }),
     );
+    setting.addButton((b) =>
+      b
+        .setButtonText("Erneut prüfen")
+        .setTooltip("Nach einer manuellen .pkg-Installation hier prüfen")
+        .onClick(async () => {
+          if (await this.plugin.resolveBinary()) {
+            new Notice("PDF2MACMD: Binary gefunden – bereit. ✓");
+            this.display();
+          } else {
+            new Notice(
+              "PDF2MACMD: Noch kein Binary gefunden. Falls du gerade die .pkg " +
+                "installiert hast, starte Obsidian einmal neu.",
+              9000,
+            );
+          }
+        }),
+    );
     setting.addExtraButton((b) =>
       b
         .setIcon("download")
-        .setTooltip("Stattdessen die .pkg manuell laden")
-        .onClick(() => window.open(PKG_DOWNLOAD_URL, "_blank")),
+        .setTooltip("Stattdessen die .pkg manuell installieren")
+        .onClick(() => {
+          window.open(PKG_DOWNLOAD_URL, "_blank");
+          new Notice(
+            "PDF2MACMD: Nach der .pkg-Installation auf „Erneut prüfen“ klicken " +
+              "(oder Obsidian neu starten).",
+            9000,
+          );
+        }),
     );
   }
 }

@@ -40,7 +40,9 @@ Jeder **GitHub-Release** im öffentlichen Repo trägt vier Assets: `manifest.jso
 
 **Plugin (empfohlen, mit Auto-Update):** In [BRAT](https://github.com/TfTHacker/obsidian42-brat) *Add beta plugin* → `webline/pdf2macmd-obsidian`.
 
-**Binary:** Die `.pkg` aus dem neuesten Release herunterladen und doppelklicken (notarisiert, installiert nach `/usr/local/bin`). **Voraussetzung: macOS 26+** (Apple Vision Document API).
+**Binary (empfohlen):** In den Plugin-Einstellungen auf **„Binary installieren"** klicken — das Plugin lädt das signierte Programm direkt in seinen Ordner. Kein Installer, kein Admin-Passwort. Danach ist es sofort einsatzbereit. **Voraussetzung: macOS 26+** (Apple Vision Document API).
+
+**Binary (manueller Fallback):** Die `.pkg` aus dem neuesten Release doppelklicken (notarisiert, installiert nach `/usr/local/bin`). Anschließend in den Plugin-Einstellungen auf **„Erneut prüfen"** klicken — oder **Obsidian neu starten**, damit das Plugin das Binary erkennt.
 
 **Manuell ohne GitHub** (für eigene Macs): aus dem privaten Repo-Root
 ```bash
