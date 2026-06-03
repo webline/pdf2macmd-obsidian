@@ -1,7 +1,26 @@
 /*
  * PDF2MACMD — Obsidian-Plugin
  * Copyright (c) 2026 Detlef Beyer / Medienkonzepte GbR
- *
- * Aktuell keine eigenen Styles nötig — das Plugin nutzt Obsidians Standard-UI.
- * Datei bewusst vorhanden, damit Build/Install-Skript sie kopieren kann.
  */
+
+.pdf2macmd-header {
+  text-align: center;
+  padding: 8px 0 4px;
+  border-bottom: 1px solid var(--background-modifier-border);
+  margin-bottom: 16px;
+}
+
+.pdf2macmd-logo {
+  display: block;
+  width: 96px;
+  height: auto;
+  margin: 0 auto 10px;
+}
+
+.pdf2macmd-intro {
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  line-height: 1.5;
+  max-width: 440px;
+  margin: 0 auto 4px;
+}

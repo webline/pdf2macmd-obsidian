@@ -21,6 +21,8 @@ import {
   normalizePath,
 } from "obsidian";
 
+import { LOGO_DATA_URI } from "./logo";
+
 import { execFile } from "child_process";
 import { promisify } from "util";
 import { rename, readFile, unlink, stat } from "fs/promises";
@@ -307,6 +309,20 @@ class Pdf2macmdSettingTab extends PluginSettingTab {
   display(): void {
     const { containerEl } = this;
     containerEl.empty();
+
+    // Kopfbereich: Logo + kurze Funktionsbeschreibung.
+    const header = containerEl.createDiv({ cls: "pdf2macmd-header" });
+    header.createEl("img", {
+      cls: "pdf2macmd-logo",
+      attr: { src: LOGO_DATA_URI, alt: "Medienkonzepte – Logo" },
+    });
+    header.createEl("p", {
+      cls: "pdf2macmd-intro",
+      text:
+        "Wandelt PDFs aus dem Quell-Ordner on-device über Apple Vision in saubere " +
+        "Markdown-Notizen um – mit Überschriften, Tabellen, Listen und Fußnoten. " +
+        "Die Original-PDF wird archiviert und in der Notiz verlinkt.",
+    });
 
     // Binary-Status oben — Container jetzt platzieren, asynchron füllen.
     const statusEl = containerEl.createDiv();
