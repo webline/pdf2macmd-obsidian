@@ -470,7 +470,7 @@ class Pdf2macmdSettingTab extends PluginSettingTab {
     const header = containerEl.createDiv({ cls: "pdf2macmd-header" });
     header.createEl("img", {
       cls: "pdf2macmd-logo",
-      attr: { src: LOGO_DATA_URI, alt: "Medienkonzepte – Logo" },
+      attr: { src: LOGO_DATA_URI, alt: "pdf2macmd – Logo" },
     });
     header.createEl("p", {
       cls: "pdf2macmd-intro",
@@ -587,6 +587,18 @@ class Pdf2macmdSettingTab extends PluginSettingTab {
           .setCta()
           .onClick(() => void this.plugin.scanSourceFolder()),
       );
+
+    // Support-Button ganz unten in den Einstellungen.
+    const support = containerEl.createDiv({ cls: "pdf2macmd-support" });
+    const bmc = support.createEl("a", {
+      cls: "pdf2macmd-bmc",
+      href: "https://buymeacoffee.com/webline",
+    });
+    bmc.setAttribute("target", "_blank");
+    bmc.setAttribute("rel", "noopener");
+    bmc.setAttribute("aria-label", "Kauf mir einen Kaffee — buymeacoffee.com/webline");
+    bmc.createSpan({ text: "☕", cls: "pdf2macmd-bmc-emoji" });
+    bmc.createSpan({ text: "Kauf mir einen Kaffee" });
   }
 
   private async renderBinaryStatus(containerEl: HTMLElement) {
