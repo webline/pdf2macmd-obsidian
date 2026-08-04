@@ -466,13 +466,21 @@ class Pdf2macmdSettingTab extends PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
 
-    // Kopfbereich: Logo + kurze Funktionsbeschreibung.
+    // Branding-Header: Logo + Name/Untertitel, Versions-Badge rechts (Layout wie Booxidian).
     const header = containerEl.createDiv({ cls: "pdf2macmd-header" });
-    header.createEl("img", {
-      cls: "pdf2macmd-logo",
-      attr: { src: LOGO_DATA_URI, alt: "pdf2macmd – Logo" },
+    const logo = header.createEl("img", { cls: "pdf2macmd-logo" });
+    logo.src = LOGO_DATA_URI;
+    logo.setAttribute("alt", "pdf2macmd – Logo");
+    const titleBox = header.createDiv({ cls: "pdf2macmd-titlebox" });
+    titleBox.createEl("div", { text: this.plugin.manifest.name, cls: "pdf2macmd-brand" });
+    titleBox.createEl("div", { text: "PDF → Markdown · Apple Vision", cls: "pdf2macmd-sub" });
+    header.createEl("div", {
+      text: `v${this.plugin.manifest.version}`,
+      cls: "pdf2macmd-version",
     });
-    header.createEl("p", {
+
+    // Kurzbeschreibung unter dem Header.
+    containerEl.createEl("p", {
       cls: "pdf2macmd-intro",
       text:
         "Wandelt PDFs aus dem Quell-Ordner on-device über Apple Vision in saubere " +

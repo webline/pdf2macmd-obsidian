@@ -4,25 +4,47 @@
  */
 
 .pdf2macmd-header {
-  text-align: center;
-  padding: 8px 0 4px;
-  border-bottom: 1px solid var(--background-modifier-border);
-  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 2px 0 12px;
 }
 
-.pdf2macmd-logo {
-  display: block;
-  width: 96px;
-  height: auto;
-  margin: 0 auto 10px;
+.pdf2macmd-header .pdf2macmd-logo {
+  width: 46px;
+  height: 46px;
+  border-radius: 11px;
+  flex: 0 0 auto;
+}
+
+.pdf2macmd-brand {
+  font-size: 1.3em;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.pdf2macmd-sub {
+  font-size: 0.85em;
+  opacity: 0.6;
+}
+
+.pdf2macmd-version {
+  margin-left: auto;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--background-modifier-border);
+  color: var(--text-muted);
+  font-size: 0.8em;
+  font-variant-numeric: tabular-nums;
 }
 
 .pdf2macmd-intro {
   color: var(--text-muted);
   font-size: var(--font-ui-small);
   line-height: 1.5;
-  max-width: 440px;
-  margin: 0 auto 4px;
+  margin: 0 0 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--background-modifier-border);
 }
 
 .pdf2macmd-support {
