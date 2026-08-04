@@ -50,6 +50,32 @@ Jeder **GitHub-Release** im öffentlichen Repo trägt vier Assets: `manifest.jso
 ```
 kopiert die gebauten Plugin-Dateien direkt ins Vault.
 
+## Öffentliche API (für andere Plugins)
+
+Andere Plugins können die Bild-OCR mitnutzen — z. B. [Booxidian](https://github.com/webline/ObsidianBoox), das seine gerenderten Handschrift-Seiten hierüber on-device transkribiert. Das Plugin legt dazu eine kleine, versionierte API auf seiner Instanz ab:
+
+```ts
+interface Pdf2macmdApi {
+  readonly version: number;                    // Vertragsversion (aktuell 1)
+  isAvailable(): Promise<boolean>;             // Binary vorhanden UND ocr-fähig (≥ 0.2.0)
+  ocrImage(                                     // Einzelbild → reiner Text (Apple Vision)
+    image: Uint8Array | ArrayBuffer | string,  // Bytes oder absoluter Dateipfad
+    options?: { languages?: string[] },        // Standard: ["de-DE", "en-US"]
+  ): Promise<string>;
+}
+```
+
+Zugriff aus einem anderen Plugin:
+
+```ts
+const api = (this.app as any).plugins?.plugins?.["pdf2macmd"]?.api;
+if (api && (await api.isAvailable())) {
+  const text = await api.ocrImage(pngBytes);
+}
+```
+
+`isAvailable()` prüft echt gegen `pdf2macmd version` — ist nur ein altes Binary (< 0.2.0, ohne `ocr`-Befehl) installiert, liefert es `false`, statt den Aufruf später scheitern zu lassen. Die API ist rein additiv; der PDF→Markdown-Ablauf bleibt davon unberührt.
+
 ## Entwicklung
 
 ```bash

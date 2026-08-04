@@ -51,6 +51,20 @@ const BINARY_CANDIDATES = [
   pathJoin(homedir(), ".local/bin/pdf2macmd"),
 ];
 
+/** Erste Binary-Version mit dem `ocr`-Unterbefehl. Ältere können keine Bild-OCR. */
+const OCR_MIN_BINARY_VERSION = "0.2.0";
+
+/** Vergleicht zwei "x.y.z"-Versionen: <0, 0 oder >0 wie bei einem Comparator. */
+function compareVersion(a: string, b: string): number {
+  const pa = a.split(".").map((n) => parseInt(n, 10) || 0);
+  const pb = b.split(".").map((n) => parseInt(n, 10) || 0);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const diff = (pa[i] ?? 0) - (pb[i] ?? 0);
+    if (diff !== 0) return diff;
+  }
+  return 0;
+}
+
 interface Pdf2macmdSettings {
   /** Quell-Ordner für neue PDFs (vault-relativ). */
   sourceFolder: string;
@@ -78,11 +92,51 @@ const DEFAULT_SETTINGS: Pdf2macmdSettings = {
   dpi: "",
 };
 
+/**
+ * Öffentliche API für andere Plugins (z. B. Booxidian). Erreichbar über
+ * `app.plugins.plugins["pdf2macmd"]?.api`. Additiv — ändert nichts am
+ * PDF→Markdown-Ablauf. Aufrufer prüfen zuerst `version`, dann ggf. `isAvailable()`.
+ */
+export interface Pdf2macmdApi {
+  /** Vertragsversion dieser API. Aufrufer sollten `>= 1` erwarten. */
+  readonly version: number;
+  /** True, wenn ein nutzbares Binary auflösbar ist. Löst KEINEN Download aus. */
+  isAvailable(): Promise<boolean>;
+  /**
+   * Erkennt den Text eines Einzelbildes (Handschrift/Notizen; PNG/JPEG/TIFF/…) über
+   * Apple Vision und gibt reinen Text zurück. Wirft, wenn kein Binary verfügbar ist
+   * oder die Erkennung scheitert.
+   *
+   * @param image   Bilddaten (Uint8Array/ArrayBuffer) ODER ein absoluter Dateipfad.
+   * @param options `languages`: Erkennungssprachen (Standard: de-DE, en-US).
+   */
+  ocrImage(
+    image: Uint8Array | ArrayBuffer | string,
+    options?: { languages?: string[] },
+  ): Promise<string>;
+}
+
 export default class Pdf2macmdPlugin extends Plugin {
   declare settings: Pdf2macmdSettings;
 
   /** Gerade in Verarbeitung befindliche absolute PDF-Pfade — verhindert Doppelläufe. */
   private inFlight = new Set<string>();
+
+  /**
+   * Öffentliche API für andere Plugins (siehe {@link Pdf2macmdApi}). Als Klassenfeld
+   * mit Arrow-Funktionen, damit `this` gebunden bleibt und die API sofort nach der
+   * Konstruktion des Plugin-Objekts verfügbar ist.
+   */
+  readonly api: Pdf2macmdApi = {
+    version: 1,
+    isAvailable: async () => {
+      const binary = await this.resolveBinary();
+      if (!binary) return false;
+      const v = await this.binaryVersion(binary);
+      return v !== null && compareVersion(v, OCR_MIN_BINARY_VERSION) >= 0;
+    },
+    ocrImage: (image, options) => this.ocrImage(image, options),
+  };
 
   async onload() {
     await this.loadSettings();
@@ -249,6 +303,63 @@ export default class Pdf2macmdPlugin extends Plugin {
   }
 
   // ── Kern-Verarbeitung ────────────────────────────────────────────
+
+  /**
+   * Fragt `pdf2macmd version` ab. Liefert die "x.y.z"-Version oder null, wenn das
+   * Binary den Befehl nicht kennt (Versionen vor 0.2.0) oder der Aufruf scheitert.
+   */
+  private async binaryVersion(binary: string): Promise<string | null> {
+    try {
+      const { stdout } = await execFileAsync(binary, ["version"], {
+        maxBuffer: 16 * 1024,
+      });
+      const v = stdout.trim();
+      return /^\d+\.\d+\.\d+$/.test(v) ? v : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Implementierung hinter {@link Pdf2macmdApi.ocrImage}. Schreibt übergebene Bilddaten
+   * bei Bedarf in eine Temp-Datei, ruft `pdf2macmd ocr` auf und gibt den erkannten
+   * Plain Text (ohne trailing newlines) zurück. Temp-Datei wird immer aufgeräumt.
+   */
+  async ocrImage(
+    image: Uint8Array | ArrayBuffer | string,
+    options?: { languages?: string[] },
+  ): Promise<string> {
+    const binary = await this.resolveBinary();
+    if (!binary) {
+      throw new Error(
+        "pdf2macmd-Binary nicht gefunden — Installer (.pkg) ausführen oder Pfad in den PDF2MACMD-Einstellungen setzen.",
+      );
+    }
+
+    let tmpImg: string | null = null;
+    try {
+      let imagePath: string;
+      if (typeof image === "string") {
+        imagePath = image;
+      } else {
+        const bytes = image instanceof Uint8Array ? image : new Uint8Array(image);
+        tmpImg = pathJoin(tmpdir(), `pdf2macmd-ocr-${Date.now()}.png`);
+        await writeFile(tmpImg, bytes);
+        imagePath = tmpImg;
+      }
+
+      const args = ["ocr", imagePath];
+      const langs = options?.languages;
+      if (langs && langs.length) args.push("--lang", langs.join(","));
+
+      const { stdout } = await execFileAsync(binary, args, {
+        maxBuffer: 64 * 1024 * 1024,
+      });
+      return stdout.replace(/\n+$/, "");
+    } finally {
+      if (tmpImg) await unlink(tmpImg).catch(() => undefined);
+    }
+  }
 
   private async process(pdf: TFile) {
     const absSource = this.absPath(pdf.path);
